@@ -86,7 +86,10 @@ def scrape_info():
 
     mars_weather = soup.find("div", class_="js-tweet-text-container").p.text
 
-    all_scrapped["mars_weather"] = mars_weather
+    clean_weather = mars_weather.split("pic.")[0]
+
+
+    all_scrapped["mars_weather"] = clean_weather
 
     browser.quit()
 
@@ -101,83 +104,42 @@ def scrape_info():
 
     df.columns = ["Attribute", "Values"]
 
-    df.to_html("mars_facts.html", index = False)
+    ##df.to_html("mars_facts.html", index = False)
 
-    all_scrapped["mars_facts_html"] = "mars_fact.html"
+    mars_facts_html = df.to_html(index=False, justify='center')
+
+    all_scrapped["mars_facts_html"] = mars_facts_html
 
     ##################################################
     # # MARS HEMISPHERES
 
+    browser = init_browser()
 
-    url = "https://astrogeology.usgs.gov/search/map/Mars/Viking/cerberus_enhanced"
-    response = requests.get(url)
+    url ="https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars"
+    browser.visit(url)
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    html = browser.html
+    soup = BeautifulSoup(html, "lxml")
 
+    img_divs = soup.find_all("div", class_ = "description")
 
     hemisphere_image_urls = []
-
-    title = soup.find("section", class_="block metadata").h2.text
-
-
-    img_url = soup.find("section", class_="block metadata").dl.a["href"]
-
-
-    dict = {"title": title, "img_url": img_url}
-
-
-    hemisphere_image_urls.append(dict)
-
-
-    url = "https://astrogeology.usgs.gov/search/map/Mars/Viking/schiaparelli_enhanced"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-
-    title = soup.find("section", class_="block metadata").h2.text
-
-
-    img_url = soup.find("section", class_="block metadata").dl.a["href"]
-
-
-    dict = {"title": title, "img_url": img_url}
-    hemisphere_image_urls.append(dict)
-
-
-    url = "https://astrogeology.usgs.gov/search/map/Mars/Viking/syrtis_major_enhanced"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-
-    title = soup.find("section", class_="block metadata").h2.text
-
-
-    img_url = soup.find("section", class_="block metadata").dl.a["href"]
-
-
-    dict = {"title": title, "img_url": img_url}
-    hemisphere_image_urls.append(dict)
-
-
-
-    url = "https://astrogeology.usgs.gov/search/map/Mars/Viking/valles_marineris_enhanced"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-
-    title = soup.find("section", class_="block metadata").h2.text
-
-
-    img_url = soup.find("section", class_="block metadata").dl.a["href"]
-
-
-    dict = {"title": title, "img_url": img_url}
-    hemisphere_image_urls.append(dict)
-
+    base_url = "https://astrogeology.usgs.gov"
+    for img_div in img_divs:
+        img_info = {}
+        img_title = img_div.find("h3").text
+        img_info["img_title"] = img_title
+        partial_img_url = img_div.find("a", class_ = "itemLink product-item")["href"]
+        full_img_url = base_url + partial_img_url
+        browser.visit(full_img_url)
+        full_img_url = browser.html
+        soup = BeautifulSoup(full_img_url, "lxml")
+        img_url = soup.find("div", class_ = "downloads").li.a["href"]    
+        img_info["img_url"]=img_url
+        hemisphere_image_urls.append(img_info)
 
     all_scrapped["hemispheres"] = hemisphere_image_urls
-
-
+    
     browser.quit()
 
 
